@@ -26,3 +26,13 @@ void displayGuest(const guest& g) {
 	cout << "State: " << g.state << endl;
 	cout << "------------"
 }
+
+void updateRemainingTime(guest& g) {
+	if (g.remainingTime > 0) {
+		g.remainingTime--;
+
+		if (g.remainingTime == 0) {
+			g.state = 'T'; // T means terminated
+		}
+	}
+}
