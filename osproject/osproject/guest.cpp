@@ -12,3 +12,17 @@ void initializeGuest(guest& g, int id, int arrival, int burst, int memory, int p
 	g.rideRequest = ride;
 	g.state = 'R'; //R means ready
 }
+
+void displayGuest(const guest& g) {
+	cout << "Guest info" << endl;
+	cout << "-----------" << endl;
+	cout << "PID: " << endl;
+	cout << "Arrival Time: " << g.arrivalTime << endl;
+	cout << "Burst Time: " << g.burstTime << endl;
+	cout << "Remaining Time: " << g.remainingTime << endl;
+	cout << "Memory Requirement: " << g.memoryRequirement << endl;
+	cout << "Priority: " << g.priority << endl;
+	cout << "Ride Request: " << g.rideRequest << endl;
+	cout << "State: " << g.state << endl;
+	cout << "------------"
+}
