@@ -4,7 +4,7 @@
 using namespace std;
 
 void initializeGuest(guest& g, int id, int arrival, int burst, int memory, int prio, int ride) { //function definition for initializeGuest
-	g.PID = id;
+	g.guestID = id;
 	g.arrivalTime = arrival;
 	g.burstTime = burst;
 	g.remainingTime = burst;
@@ -16,7 +16,7 @@ void initializeGuest(guest& g, int id, int arrival, int burst, int memory, int p
 void displayGuest(const guest& g) {
 	cout << "Guest info" << endl;
 	cout << "-----------" << endl;
-	cout << "PID: " << endl;
+	cout << "Guest ID: " << endl;
 	cout << "Arrival Time: " << g.arrivalTime << endl;
 	cout << "Burst Time: " << g.burstTime << endl;
 	cout << "Remaining Time: " << g.remainingTime << endl;
@@ -24,7 +24,7 @@ void displayGuest(const guest& g) {
 	cout << "Priority: " << g.priority << endl;
 	cout << "Ride Request: " << g.rideRequest << endl;
 	cout << "State: " << g.state << endl;
-	cout << "------------"
+	cout << "------------" << endl;
 }
 
 void updateRemainingTime(guest& g) {

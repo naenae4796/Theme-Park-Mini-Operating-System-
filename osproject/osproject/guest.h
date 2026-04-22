@@ -1,7 +1,8 @@
+#ifndef GUEST_H
 #define GUEST_H
 
 struct guest {
-	int PID;
+	int guestID;
 	int arrivalTime;
 	int burstTime;
 	int remainingTime;
