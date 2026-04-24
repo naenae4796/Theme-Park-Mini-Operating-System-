@@ -1,0 +1,1 @@
+/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/theme_park_os.dir/link.d CMakeFiles/theme_park_os.dir/src/main.cpp.o CMakeFiles/theme_park_os.dir/src/Guest.cpp.o CMakeFiles/theme_park_os.dir/src/Ride.cpp.o CMakeFiles/theme_park_os.dir/src/Simulation.cpp.o CMakeFiles/theme_park_os.dir/src/ScenarioData.cpp.o -o theme_park_os
