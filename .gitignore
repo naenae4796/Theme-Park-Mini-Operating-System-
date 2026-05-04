@@ -1,0 +1,25 @@
+# Build outputs
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+*.o
+*.obj
+*.exe
+*.out
+
+# Visual Studio generated files
+.vs/
+*.suo
+*.user
+*.VC.db
+*.db
+*.ipch
+*.vsidx
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.log

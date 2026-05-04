@@ -4,17 +4,22 @@ This folder contains the **Person 2** portion of the Theme Park OS project. It w
 
 ## What this module demonstrates
 
-- Process states: `NEW -> READY -> RUNNING -> WAITING -> TERMINATED`
+- Process states: `NEW -> READY -> RUNNING -> WAITING -> RIDING -> TERMINATED`
 - Scheduling policies:
   - FCFS
   - Priority Scheduling
-  - Round Robin with a **2-minute quantum**
+  - Round Robin with a configurable time quantum
 - Shared resource behavior through rides:
   - ride capacity
   - ride duration
   - busy/free states
   - FIFO waiting queues
   - release back to READY or TERMINATED after ride completion
+- Fixed-size memory management:
+  - 1024 total memory units
+  - first-fit contiguous allocation
+  - guests remain `NEW` until enough memory is available
+  - memory is released when a guest reaches `TERMINATED`
 
 ## Compatibility with the base zip
 
@@ -40,7 +45,7 @@ That means the logic in this folder can be explained and demoed against the unto
 - `include/Ride.h` / `src/Ride.cpp` - shared ride resource and waiting queues
 - `include/Simulation.h` / `src/Simulation.cpp` - state transitions, ready queue, CPU dispatch, ride coordination
 - `include/ScenarioData.h` / `src/ScenarioData.cpp` - local copy of the base scenario values for standalone testing
-- `src/main.cpp` - runs the three scheduling demos
+- `src/main.cpp` - command-line entry point for selecting scheduling policies and demo pacing
 
 ## Build and run
 
@@ -52,6 +57,26 @@ cmake --build build
 ./build/theme_park_os
 ```
 
+Select one policy:
+
+```bash
+./build/theme_park_os --policy fcfs
+./build/theme_park_os --policy priority
+./build/theme_park_os --policy rr --quantum 2
+```
+
+For a slower classroom demo:
+
+```bash
+./build/theme_park_os --policy rr --quantum 2 --demo
+```
+
+For full manual stepping:
+
+```bash
+./build/theme_park_os --step
+```
+
 ### Windows (Visual Studio generator)
 
 ```bash
@@ -60,17 +85,40 @@ cmake --build build --config Release
 ./build/Release/theme_park_os.exe
 ```
 
+Select one policy:
+
+```bash
+./build/Release/theme_park_os.exe --policy fcfs
+./build/Release/theme_park_os.exe --policy priority
+./build/Release/theme_park_os.exe --policy rr --quantum 2
+```
+
+For a slower classroom demo:
+
+```bash
+./build/Release/theme_park_os.exe --policy rr --quantum 2 --demo
+```
+
+For full manual stepping:
+
+```bash
+./build/Release/theme_park_os.exe --step
+```
+
 ## Visible behaviors in the output
 
 The output shows the rubric items directly:
 
 - arrivals into `READY`
 - dispatch decisions per policy
-- RR preemption at quantum 2
+- RR preemption at the selected quantum
 - ride blocking into `WAITING`
+- ride boarding into `RIDING`
 - ride admissions from queue
 - ride completion and release
 - termination
+- memory allocation before `READY`
+- memory release after `TERMINATED`
 
 ## Design notes
 
@@ -78,7 +126,7 @@ The output shows the rubric items directly:
 
 - **FCFS**: picks the front of the READY queue
 - **Priority**: picks the lowest priority number, then breaks ties by arrival time and pid
-- **Round Robin**: picks FIFO from READY and preempts after 2 CPU ticks
+- **Round Robin**: picks FIFO from READY and preempts after the configured quantum
 
 ### Resource / synchronization model
 
@@ -87,6 +135,7 @@ Rides act like shared resources:
 - a guest tries to acquire a ride while RUNNING
 - if the ride is busy or full, the guest blocks in `WAITING`
 - waiting guests are held in a FIFO queue
+- guests on the ride are marked `RIDING`, so only the CPU-selected guest is `RUNNING`
 - when a ride cycle finishes, guests are released and either:
   - return to `READY` if CPU work remains, or
   - move to `TERMINATED` if finished
@@ -104,7 +153,7 @@ READY queue <-> Scheduler -> CPU dispatch
     |                       |
     |                 requests ride
     |                       v
-    +----<---- WAITING queue / Ride resource ----> cycle complete
+    +----<---- WAITING queue / Ride resource ----> RIDING -> cycle complete
                                |
                                v
                         READY or TERMINATED

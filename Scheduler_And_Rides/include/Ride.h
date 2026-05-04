@@ -80,10 +80,10 @@ inline void Ride::tick(std::vector<Guest*>& out_disembarked,
     }
     current_riders_.push_back(g);
     g->riding = true;
-    g->state = GuestState::RUNNING;
+    g->state = GuestState::RIDING;
     out_admitted_from_wait.push_back(g);
-    start_cycle_if_loading_complete();
   }
+  start_cycle_if_loading_complete();
 
   out_ride_was_operating = busy_before || busy_;
 }
