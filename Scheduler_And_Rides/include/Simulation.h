@@ -1,5 +1,6 @@
 #pragma once
 #include "Guest.h"
+#include "MemoryManager.h"
 #include "Ride.h"
 #include "Scheduler.h"
 #include <deque>
@@ -29,6 +30,7 @@ class Simulation {
                         std::vector<Guest*>& admitted_all);
   void tryDispatchCpu(int tick);
   void cpuTick(int tick);
+  void releaseMemoryFor(Guest& g, int tick);
   bool allGuestsFinished() const;
 
   std::vector<std::unique_ptr<Ride>> rides_;
@@ -38,6 +40,7 @@ class Simulation {
 
   Scheduler scheduler_;
   std::ostream& log_;
+  MemoryManager memory_{1024};
 
   int completed_ = 0;
   double wait_sum_ = 0.0;

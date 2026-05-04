@@ -15,6 +15,10 @@ This folder contains the **Person 2** portion of the Theme Park OS project. It w
   - busy/free states
   - FIFO waiting queues
   - release back to READY or TERMINATED after ride completion
+- Fixed-size memory management:
+  - 1024 total memory units
+  - guests remain `NEW` until enough memory is available
+  - memory is released when a guest reaches `TERMINATED`
 
 ## Compatibility with the base zip
 
@@ -71,6 +75,8 @@ The output shows the rubric items directly:
 - ride admissions from queue
 - ride completion and release
 - termination
+- memory allocation before `READY`
+- memory release after `TERMINATED`
 
 ## Design notes
 

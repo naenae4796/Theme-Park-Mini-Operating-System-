@@ -8,6 +8,7 @@ add_executable(theme_park_os
   src/Guest.cpp
   src/Ride.cpp
   src/Simulation.cpp
+  src/MemoryManager.cpp
   src/ScenarioData.cpp
 )
 

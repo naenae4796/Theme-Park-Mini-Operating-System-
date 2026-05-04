@@ -34,7 +34,8 @@ double Simulation::averageRideUtilization() const {
   return static_cast<double>(ride_busy_ticks_) / static_cast<double>(n * ticks_executed_);
 }
 
-// Guests whose arrival time has passed move from NEW to READY and enter the ready queue.
+// Guests whose arrival time has passed first request memory. Only guests with
+// allocated memory may move from NEW to READY.
 void Simulation::admitNewArrivals(int tick) {
   std::vector<Guest*> batch;
   for (auto& gptr : guests_) {
@@ -52,6 +53,27 @@ void Simulation::admitNewArrivals(int tick) {
 
   for (Guest* gp : batch) {
     Guest& g = *gp;
+    if (!g.memory_allocated) {
+      if (!memory_.allocate(g.memory_requirement)) {
+        if (!g.memory_block_logged) {
+          std::ostringstream os;
+          os << "[t=" << tick << "] MEM_BLOCK pid=" << g.pid << " need="
+             << g.memory_requirement << " available=" << memory_.available()
+             << "/" << memory_.total() << " -> stays NEW";
+          log(os.str());
+          g.memory_block_logged = true;
+        }
+        continue;
+      }
+
+      g.memory_allocated = true;
+      std::ostringstream mem;
+      mem << "[t=" << tick << "] MEM_ALLOC pid=" << g.pid << " +"
+          << g.memory_requirement << " used=" << memory_.used() << "/"
+          << memory_.total();
+      log(mem.str());
+    }
+
     g.state = GuestState::READY;
     if (g.first_ready_tick < 0) {
       g.first_ready_tick = tick;
@@ -110,6 +132,7 @@ void Simulation::processRidePhase(int tick, std::vector<Guest*>& disembarked_all
         g->state = GuestState::TERMINATED;
         wait_sum_ += g->total_wait_ticks;
         ++completed_;
+        releaseMemoryFor(*g, tick);
         log("[t=" + std::to_string(tick) + "] RIDE_COMPLETE pid=" + std::to_string(g->pid) +
             " ride=" + r->name() + " -> TERMINATED (cpu done, visit done)");
       } else {
@@ -229,10 +252,24 @@ void Simulation::cpuTick(int tick) {
     g.state = GuestState::TERMINATED;
     wait_sum_ += g.total_wait_ticks;
     ++completed_;
+    releaseMemoryFor(g, tick);
     log("[t=" + std::to_string(tick) + "] TERMINATED pid=" + std::to_string(g.pid) +
         " (cpu finished)");
     cpu_guest_ = nullptr;
   }
+}
+
+void Simulation::releaseMemoryFor(Guest& g, int tick) {
+  if (!g.memory_allocated) {
+    return;
+  }
+  memory_.release(g.memory_requirement);
+  g.memory_allocated = false;
+  std::ostringstream os;
+  os << "[t=" << tick << "] MEM_FREE pid=" << g.pid << " -"
+     << g.memory_requirement << " used=" << memory_.used() << "/"
+     << memory_.total();
+  log(os.str());
 }
 
 // Stops the main loop once every guest has reached TERMINATED.

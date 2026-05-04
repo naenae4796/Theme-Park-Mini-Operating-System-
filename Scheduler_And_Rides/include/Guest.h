@@ -17,6 +17,8 @@ struct Guest {
   bool visit_completed = false;
   bool riding = false;
   int rr_cpu_used_this_slice = 0;
+  bool memory_allocated = false;
+  bool memory_block_logged = false;
 
   // Metrics.
   int first_ready_tick = -1;
