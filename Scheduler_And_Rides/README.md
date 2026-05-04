@@ -56,12 +56,36 @@ cmake --build build
 ./build/theme_park_os
 ```
 
+For a slower classroom demo:
+
+```bash
+./build/theme_park_os --demo
+```
+
+For full manual stepping:
+
+```bash
+./build/theme_park_os --step
+```
+
 ### Windows (Visual Studio generator)
 
 ```bash
 cmake -S . -B build
 cmake --build build --config Release
 ./build/Release/theme_park_os.exe
+```
+
+For a slower classroom demo:
+
+```bash
+./build/Release/theme_park_os.exe --demo
+```
+
+For full manual stepping:
+
+```bash
+./build/Release/theme_park_os.exe --step
 ```
 
 ## Visible behaviors in the output

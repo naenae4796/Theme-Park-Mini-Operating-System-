@@ -8,14 +8,26 @@
 #include "Simulation.h"
 #include "ScenarioData.h"
 #include <algorithm>
+#include <chrono>
+#include <iostream>
 #include <sstream>
+#include <thread>
 
 Simulation::Simulation(std::vector<std::unique_ptr<Ride>> rides,
                        std::vector<std::unique_ptr<Guest>> guests, SchedulingPolicy policy,
                        std::ostream& log)
     : rides_(std::move(rides)), guests_(std::move(guests)), scheduler_(policy), log_(log) {}
 
-void Simulation::log(const std::string& msg) { log_ << msg << '\n'; }
+void Simulation::log(const std::string& msg) {
+  log_ << msg << '\n';
+  if (step_mode_) {
+    log_ << "Press Enter for next event...";
+    log_.flush();
+    std::cin.get();
+  } else if (log_delay_ms_ > 0) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(log_delay_ms_));
+  }
+}
 
 // Mean total wait ticks across guests that reached TERMINATED (for summary stats).
 double Simulation::averageWait() const {

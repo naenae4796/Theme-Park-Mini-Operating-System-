@@ -16,6 +16,8 @@ class Simulation {
   Simulation(std::vector<std::unique_ptr<Ride>> rides, std::vector<std::unique_ptr<Guest>> guests,
              SchedulingPolicy policy, std::ostream& log = std::cout);
 
+  void setLogDelayMs(int delay_ms) { log_delay_ms_ = delay_ms; }
+  void setStepMode(bool enabled) { step_mode_ = enabled; }
   void run(int max_ticks);
 
   int completed() const { return completed_; }
@@ -41,6 +43,8 @@ class Simulation {
   Scheduler scheduler_;
   std::ostream& log_;
   MemoryManager memory_{1024};
+  int log_delay_ms_ = 0;
+  bool step_mode_ = false;
 
   int completed_ = 0;
   double wait_sum_ = 0.0;
