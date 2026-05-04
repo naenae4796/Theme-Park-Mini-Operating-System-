@@ -4,7 +4,7 @@
 //
 // Each outer-loop tick: arrivals become READY, rides advance (busy timer, disembark,
 // admit from wait queues), READY/WAITING guests accrue wait time, then one CPU guest
-// may run and burn burst / request a ride / get preempted (RR quantum 2).
+// may run and burn burst / request a ride / get preempted (RR quantum is configurable).
 #include "Simulation.h"
 #include "ScenarioData.h"
 #include <algorithm>
@@ -17,6 +17,10 @@ Simulation::Simulation(std::vector<std::unique_ptr<Ride>> rides,
                        std::vector<std::unique_ptr<Guest>> guests, SchedulingPolicy policy,
                        std::ostream& log)
     : rides_(std::move(rides)), guests_(std::move(guests)), scheduler_(policy), log_(log) {}
+
+void Simulation::setRoundRobinQuantum(int quantum_ticks) {
+  rr_quantum_ticks_ = std::max(1, quantum_ticks);
+}
 
 void Simulation::log(const std::string& msg) {
   log_ << msg << '\n';
@@ -79,10 +83,11 @@ void Simulation::admitNewArrivals(int tick) {
       }
 
       g.memory_allocated = true;
+      g.memory_start = memory_.lastAllocationStart();
       std::ostringstream mem;
       mem << "[t=" << tick << "] MEM_ALLOC pid=" << g.pid << " +"
           << g.memory_requirement << " used=" << memory_.used() << "/"
-          << memory_.total();
+          << memory_.total() << " start=" << g.memory_start << " strategy=first-fit";
       log(mem.str());
     }
 
@@ -98,7 +103,7 @@ void Simulation::admitNewArrivals(int tick) {
   }
 }
 
-// Per-tick wait accounting: READY and WAITING guests accumulate one wait tick.
+// Per-tick wait accounting: READY and blocked WAITING guests accumulate one wait tick.
 void Simulation::updateWaitMetrics() {
   for (auto& gptr : guests_) {
     Guest& g = *gptr;
@@ -161,7 +166,7 @@ void Simulation::processRidePhase(int tick, std::vector<Guest*>& disembarked_all
       }
       admitted_all.push_back(g);
       log("[t=" + std::to_string(tick) + "] RIDE_ADMIT_WAIT pid=" + std::to_string(g->pid) +
-          " ride=" + r->name() + " (on_ride)");
+          " ride=" + r->name() + " WAITING -> RIDING");
     }
   }
 }
@@ -196,7 +201,7 @@ void Simulation::tryDispatchCpu(int tick) {
 }
 
 // One tick of work for whoever holds the CPU: optionally board a requested ride (may block
-// to WAITING), else consume one unit of CPU burst; RR may preempt after quantum 2.
+// to WAITING), else consume one unit of CPU burst; RR may preempt after the configured quantum.
 void Simulation::cpuTick(int tick) {
   if (!cpu_guest_) {
     return;
@@ -233,7 +238,8 @@ void Simulation::cpuTick(int tick) {
         return;
       }
       std::ostringstream os;
-      os << "[t=" << tick << "] RIDE_BOARD pid=" << g.pid << " ride=" << ride->name();
+      os << "[t=" << tick << "] RIDE_BOARD pid=" << g.pid << " ride=" << ride->name()
+         << " RUNNING -> RIDING";
       log(os.str());
       cpu_guest_ = nullptr;
       return;
@@ -247,12 +253,12 @@ void Simulation::cpuTick(int tick) {
 
   if (scheduler_.policy() == SchedulingPolicy::RoundRobin && cpu_before > 0) {
     g.rr_cpu_used_this_slice += 1;
-    if (g.rr_cpu_used_this_slice >= 2 && g.remaining_time > 0) {
+    if (g.rr_cpu_used_this_slice >= rr_quantum_ticks_ && g.remaining_time > 0) {
       g.state = GuestState::READY;
       g.rr_cpu_used_this_slice = 0;
       ready_queue_.push_back(&g);
       log("[t=" + std::to_string(tick) + "] PREEMPT_RR pid=" + std::to_string(g.pid) +
-          " quantum=2 -> READY");
+          " quantum=" + std::to_string(rr_quantum_ticks_) + " -> READY");
       cpu_guest_ = nullptr;
       return;
     }
@@ -275,12 +281,13 @@ void Simulation::releaseMemoryFor(Guest& g, int tick) {
   if (!g.memory_allocated) {
     return;
   }
-  memory_.release(g.memory_requirement);
+  memory_.release(g.memory_start, g.memory_requirement);
   g.memory_allocated = false;
   std::ostringstream os;
   os << "[t=" << tick << "] MEM_FREE pid=" << g.pid << " -"
      << g.memory_requirement << " used=" << memory_.used() << "/"
-     << memory_.total();
+     << memory_.total() << " start=" << g.memory_start;
+  g.memory_start = -1;
   log(os.str());
 }
 
@@ -298,7 +305,8 @@ bool Simulation::allGuestsFinished() const {
 void Simulation::run(int max_ticks) {
   ticks_executed_ = 0;
   ride_busy_ticks_ = 0;
-  log("=== Simulation start (1 tick = 1 minute, RR quantum = 2 ticks) ===");
+  log("=== Simulation start (1 tick = 1 minute, RR quantum = " +
+      std::to_string(rr_quantum_ticks_) + " ticks) ===");
   std::vector<Guest*> disembarked_all;
   std::vector<Guest*> admitted_all;
 

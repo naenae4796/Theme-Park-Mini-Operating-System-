@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-enum class GuestState { NEW, READY, RUNNING, WAITING, TERMINATED };
+enum class GuestState { NEW, READY, RUNNING, WAITING, RIDING, TERMINATED };
 
 struct Guest {
   int pid = 0;
@@ -19,6 +19,7 @@ struct Guest {
   int rr_cpu_used_this_slice = 0;
   bool memory_allocated = false;
   bool memory_block_logged = false;
+  int memory_start = -1;
 
   // Metrics.
   int first_ready_tick = -1;

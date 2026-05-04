@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-// Tick-based simulation: 1 tick = 1 minute. Round Robin quantum = 2 ticks.
+// Tick-based simulation: 1 tick = 1 minute.
 class Simulation {
  public:
   Simulation(std::vector<std::unique_ptr<Ride>> rides, std::vector<std::unique_ptr<Guest>> guests,
@@ -18,6 +18,7 @@ class Simulation {
 
   void setLogDelayMs(int delay_ms) { log_delay_ms_ = delay_ms; }
   void setStepMode(bool enabled) { step_mode_ = enabled; }
+  void setRoundRobinQuantum(int quantum_ticks);
   void run(int max_ticks);
 
   int completed() const { return completed_; }
@@ -43,6 +44,7 @@ class Simulation {
   Scheduler scheduler_;
   std::ostream& log_;
   MemoryManager memory_{1024};
+  int rr_quantum_ticks_ = 2;
   int log_delay_ms_ = 0;
   bool step_mode_ = false;
 

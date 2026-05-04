@@ -23,6 +23,8 @@ std::string Guest::stateString() const {
       return "RUNNING";
     case GuestState::WAITING:
       return "WAITING";
+    case GuestState::RIDING:
+      return "RIDING";
     case GuestState::TERMINATED:
       return "TERMINATED";
   }

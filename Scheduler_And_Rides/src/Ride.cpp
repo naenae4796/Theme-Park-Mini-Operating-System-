@@ -31,6 +31,7 @@ bool Ride::tryBoard(Guest& g) {
 
   current_riders_.push_back(&g);
   g.riding = true;
+  g.state = GuestState::RIDING;
   start_cycle_if_loading_complete();
   return true;
 }
