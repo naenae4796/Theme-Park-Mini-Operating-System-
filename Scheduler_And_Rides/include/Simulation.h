@@ -17,6 +17,7 @@ class Simulation {
              SchedulingPolicy policy, std::ostream& log = std::cout);
 
   void setLogDelayMs(int delay_ms) { log_delay_ms_ = delay_ms; }
+  void setTickDelayMs(int delay_ms) { tick_delay_ms_ = delay_ms; }
   void setStepMode(bool enabled) { step_mode_ = enabled; }
   void setRoundRobinQuantum(int quantum_ticks);
   void run(int max_ticks);
@@ -33,6 +34,7 @@ class Simulation {
                         std::vector<Guest*>& admitted_all);
   void tryDispatchCpu(int tick);
   void cpuTick(int tick);
+  void sleepBetweenTicks() const;
   void releaseMemoryFor(Guest& g, int tick);
   bool allGuestsFinished() const;
 
@@ -46,6 +48,7 @@ class Simulation {
   MemoryManager memory_{1024};
   int rr_quantum_ticks_ = 2;
   int log_delay_ms_ = 0;
+  int tick_delay_ms_ = 0;
   bool step_mode_ = false;
 
   int completed_ = 0;

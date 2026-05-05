@@ -34,6 +34,13 @@ void Simulation::log(const std::string& msg) {
   }
 }
 
+void Simulation::sleepBetweenTicks() const {
+  if (step_mode_ || tick_delay_ms_ <= 0) {
+    return;
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(tick_delay_ms_));
+}
+
 // Mean total wait ticks across guests that reached TERMINATED (for summary stats).
 double Simulation::averageWait() const {
   if (completed_ == 0) {
@@ -324,6 +331,7 @@ void Simulation::run(int max_ticks) {
 
   for (int t = 0; t < max_ticks; ++t) {
     ticks_executed_ = t + 1;
+    log("\n========== TIME " + std::to_string(t) + " ==========");
     admitNewArrivals(t);
 
     processRidePhase(t, disembarked_all, admitted_all);
@@ -341,6 +349,8 @@ void Simulation::run(int max_ticks) {
       log("[time=" + std::to_string(t) + "] all jobs finished; stopping simulation");
       break;
     }
+
+    sleepBetweenTicks();
   }
 
   std::ostringstream summary;

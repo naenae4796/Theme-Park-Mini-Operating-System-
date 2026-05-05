@@ -36,21 +36,24 @@ static bool parsePolicy(const std::string& value, SchedulingPolicy& out_policy) 
 
 static void printUsage(const char* program) {
   std::cout << "Usage: " << program << " [--policy fcfs|priority|rr|all] [--quantum N]"
-            << " [--demo|--delay-ms N|--step]\n";
+            << " [--demo|--tick-delay-ms N|--delay-ms N|--step|--fast]\n";
 }
 
-static void runCase(SchedulingPolicy p, int quantum_ticks, int delay_ms, bool step_mode) {
+static void runCase(SchedulingPolicy p, int quantum_ticks, int event_delay_ms, int tick_delay_ms,
+                    bool step_mode) {
   const char* title = policyName(p);
   std::cout << "\n######## " << title << " ########\n";
   Simulation sim(makeDemoRides(), makeBaseScenarioGuests(), p, std::cout);
   sim.setRoundRobinQuantum(quantum_ticks);
-  sim.setLogDelayMs(delay_ms);
+  sim.setLogDelayMs(event_delay_ms);
+  sim.setTickDelayMs(tick_delay_ms);
   sim.setStepMode(step_mode);
   sim.run(120);
 }
 
 int main(int argc, char* argv[]) {
-  int delay_ms = 650;
+  int event_delay_ms = 0;
+  int tick_delay_ms = 1000;
   int quantum_ticks = 2;
   bool step_mode = false;
   bool run_all = true;
@@ -61,14 +64,20 @@ int main(int argc, char* argv[]) {
     if (arg == "--step") {
       step_mode = true;
     } else if (arg == "--fast") {
-      delay_ms = 0;
+      event_delay_ms = 0;
+      tick_delay_ms = 0;
     } else if (arg == "--delay-ms" && i + 1 < argc) {
-      delay_ms = std::atoi(argv[++i]);
-      if (delay_ms < 0) {
-        delay_ms = 0;
+      event_delay_ms = std::atoi(argv[++i]);
+      if (event_delay_ms < 0) {
+        event_delay_ms = 0;
+      }
+    } else if (arg == "--tick-delay-ms" && i + 1 < argc) {
+      tick_delay_ms = std::atoi(argv[++i]);
+      if (tick_delay_ms < 0) {
+        tick_delay_ms = 0;
       }
     } else if (arg == "--demo") {
-      delay_ms = 650;
+      tick_delay_ms = 1000;
     } else if (arg == "--quantum" && i + 1 < argc) {
       quantum_ticks = std::atoi(argv[++i]);
       if (quantum_ticks <= 0) {
@@ -97,11 +106,12 @@ int main(int argc, char* argv[]) {
   }
 
   if (run_all) {
-    runCase(SchedulingPolicy::FCFS, quantum_ticks, delay_ms, step_mode);
-    runCase(SchedulingPolicy::Priority, quantum_ticks, delay_ms, step_mode);
-    runCase(SchedulingPolicy::RoundRobin, quantum_ticks, delay_ms, step_mode);
+    runCase(SchedulingPolicy::FCFS, quantum_ticks, event_delay_ms, tick_delay_ms, step_mode);
+    runCase(SchedulingPolicy::Priority, quantum_ticks, event_delay_ms, tick_delay_ms, step_mode);
+    runCase(SchedulingPolicy::RoundRobin, quantum_ticks, event_delay_ms, tick_delay_ms,
+            step_mode);
   } else {
-    runCase(selected_policy, quantum_ticks, delay_ms, step_mode);
+    runCase(selected_policy, quantum_ticks, event_delay_ms, tick_delay_ms, step_mode);
   }
 
   return 0;

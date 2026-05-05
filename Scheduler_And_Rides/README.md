@@ -73,6 +73,12 @@ For a classroom demo:
 
 Output is paced by default. Use `--fast` if you want it to print everything immediately.
 
+To slow each simulated minute/tick more:
+
+```bash
+./build/theme_park_os --policy rr --quantum 2 --tick-delay-ms 1500
+```
+
 For full manual stepping:
 
 ```bash
@@ -102,6 +108,12 @@ For a classroom demo:
 ```
 
 Output is paced by default. Use `--fast` if you want it to print everything immediately.
+
+To slow each simulated minute/tick more:
+
+```bash
+./build/Release/theme_park_os.exe --policy rr --quantum 2 --tick-delay-ms 1500
+```
 
 For full manual stepping:
 
