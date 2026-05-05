@@ -24,6 +24,7 @@ void Simulation::setRoundRobinQuantum(int quantum_ticks) {
 
 void Simulation::log(const std::string& msg) {
   log_ << msg << '\n';
+  log_.flush();
   if (step_mode_) {
     log_ << "Press Enter for next event...";
     log_.flush();
@@ -73,9 +74,9 @@ void Simulation::admitNewArrivals(int tick) {
       if (!memory_.allocate(g.memory_requirement)) {
         if (!g.memory_block_logged) {
           std::ostringstream os;
-          os << "[t=" << tick << "] MEM_BLOCK pid=" << g.pid << " need="
-             << g.memory_requirement << " available=" << memory_.available()
-             << "/" << memory_.total() << " -> stays NEW";
+          os << "[time=" << tick << "] job=R" << g.pid << " request memory="
+             << g.memory_requirement << " -> BLOCKED (insufficient memory, available="
+             << memory_.available() << "/" << memory_.total() << ") -> state=WAITING";
           log(os.str());
           g.memory_block_logged = true;
         }
@@ -85,9 +86,10 @@ void Simulation::admitNewArrivals(int tick) {
       g.memory_allocated = true;
       g.memory_start = memory_.lastAllocationStart();
       std::ostringstream mem;
-      mem << "[t=" << tick << "] MEM_ALLOC pid=" << g.pid << " +"
-          << g.memory_requirement << " used=" << memory_.used() << "/"
-          << memory_.total() << " start=" << g.memory_start << " strategy=first-fit";
+      mem << "[time=" << tick << "] job=R" << g.pid << " request memory="
+          << g.memory_requirement << " -> GRANTED (base=" << g.memory_start
+          << " limit=" << (g.memory_start + g.memory_requirement)
+          << ") -> state=READY";
       log(mem.str());
     }
 
@@ -97,8 +99,9 @@ void Simulation::admitNewArrivals(int tick) {
     }
     ready_queue_.push_back(&g);
     std::ostringstream os;
-    os << "[t=" << tick << "] ARRIVE pid=" << g.pid << " -> READY (burst=" << g.remaining_time
-       << " pri=" << g.priority << " mem=" << g.memory_requirement << " ride=" << g.requested_ride_id << ")";
+    os << "[time=" << tick << "] job=R" << g.pid << " arrive -> state=READY"
+       << " (burst=" << g.remaining_time << " priority=" << g.priority
+       << " memory=" << g.memory_requirement << " ride=" << g.requested_ride_id << ")";
     log(os.str());
   }
 }
@@ -142,21 +145,21 @@ void Simulation::processRidePhase(int tick, std::vector<Guest*>& disembarked_all
       if (g->remaining_time > 0) {
         g->state = GuestState::READY;
         ready_queue_.push_back(g);
-        log("[t=" + std::to_string(tick) + "] RIDE_COMPLETE pid=" + std::to_string(g->pid) +
-            " ride=" + r->name() + " -> READY (cpu_left=" + std::to_string(g->remaining_time) +
+        log("[time=" + std::to_string(tick) + "] job=R" + std::to_string(g->pid) +
+            " release resource=" + r->name() + " -> state=READY (remaining_cpu=" + std::to_string(g->remaining_time) +
             ")");
       } else if (g->visit_completed || g->requested_ride_id < 0) {
         g->state = GuestState::TERMINATED;
         wait_sum_ += g->total_wait_ticks;
         ++completed_;
         releaseMemoryFor(*g, tick);
-        log("[t=" + std::to_string(tick) + "] RIDE_COMPLETE pid=" + std::to_string(g->pid) +
-            " ride=" + r->name() + " -> TERMINATED (cpu done, visit done)");
+        log("[time=" + std::to_string(tick) + "] job=R" + std::to_string(g->pid) +
+            " release resource=" + r->name() + " -> state=TERMINATED");
       } else {
         g->state = GuestState::READY;
         ready_queue_.push_back(g);
-        log("[t=" + std::to_string(tick) + "] RIDE_COMPLETE pid=" + std::to_string(g->pid) +
-            " ride=" + r->name() + " -> READY (finish cpu then revisit)");
+        log("[time=" + std::to_string(tick) + "] job=R" + std::to_string(g->pid) +
+            " release resource=" + r->name() + " -> state=READY");
       }
     }
 
@@ -165,8 +168,8 @@ void Simulation::processRidePhase(int tick, std::vector<Guest*>& disembarked_all
         continue;
       }
       admitted_all.push_back(g);
-      log("[t=" + std::to_string(tick) + "] RIDE_ADMIT_WAIT pid=" + std::to_string(g->pid) +
-          " ride=" + r->name() + " WAITING -> RIDING");
+      log("[time=" + std::to_string(tick) + "] job=R" + std::to_string(g->pid) +
+          " request resource=" + r->name() + " -> GRANTED from FIFO queue -> state=RIDING");
     }
   }
 }
@@ -193,11 +196,14 @@ void Simulation::tryDispatchCpu(int tick) {
   cpu_guest_ = next;
 
   std::ostringstream os;
-  os << "[t=" << tick << "] DISPATCH pid=" << next->pid << " policy=";
+  os << "[time=" << tick << "] scheduler=";
   os << (scheduler_.policy() == SchedulingPolicy::FCFS
              ? "FCFS"
              : (scheduler_.policy() == SchedulingPolicy::Priority ? "PRIORITY" : "RR"));
+  os << " selected=R" << next->pid;
   log(os.str());
+  log("[time=" + std::to_string(tick) + "] job=R" + std::to_string(next->pid) +
+      " state=RUNNING");
 }
 
 // One tick of work for whoever holds the CPU: optionally board a requested ride (may block
@@ -231,15 +237,16 @@ void Simulation::cpuTick(int tick) {
       const bool boarded = ride->tryBoard(g);
       if (!boarded) {
         std::ostringstream os;
-        os << "[t=" << tick << "] RIDE_BLOCK pid=" << g.pid << " ride=" << ride->name()
-           << " -> WAITING (queue_len=" << ride->waiting_queue().size() << ")";
+        os << "[time=" << tick << "] job=R" << g.pid << " request resource="
+           << ride->name() << " -> BLOCKED (busy, queue_len="
+           << ride->waiting_queue().size() << ") -> state=WAITING";
         log(os.str());
         cpu_guest_ = nullptr;
         return;
       }
       std::ostringstream os;
-      os << "[t=" << tick << "] RIDE_BOARD pid=" << g.pid << " ride=" << ride->name()
-         << " RUNNING -> RIDING";
+      os << "[time=" << tick << "] job=R" << g.pid << " request resource="
+         << ride->name() << " -> GRANTED -> state=RIDING";
       log(os.str());
       cpu_guest_ = nullptr;
       return;
@@ -257,8 +264,9 @@ void Simulation::cpuTick(int tick) {
       g.state = GuestState::READY;
       g.rr_cpu_used_this_slice = 0;
       ready_queue_.push_back(&g);
-      log("[t=" + std::to_string(tick) + "] PREEMPT_RR pid=" + std::to_string(g.pid) +
-          " quantum=" + std::to_string(rr_quantum_ticks_) + " -> READY");
+      log("[time=" + std::to_string(tick) + "] scheduler=RR time slice expired for R" +
+          std::to_string(g.pid) + " quantum=" + std::to_string(rr_quantum_ticks_) +
+          " -> state=READY");
       cpu_guest_ = nullptr;
       return;
     }
@@ -271,8 +279,8 @@ void Simulation::cpuTick(int tick) {
     wait_sum_ += g.total_wait_ticks;
     ++completed_;
     releaseMemoryFor(g, tick);
-    log("[t=" + std::to_string(tick) + "] TERMINATED pid=" + std::to_string(g.pid) +
-        " (cpu finished)");
+    log("[time=" + std::to_string(tick) + "] job=R" + std::to_string(g.pid) +
+        " done -> state=TERMINATED");
     cpu_guest_ = nullptr;
   }
 }
@@ -284,9 +292,9 @@ void Simulation::releaseMemoryFor(Guest& g, int tick) {
   memory_.release(g.memory_start, g.memory_requirement);
   g.memory_allocated = false;
   std::ostringstream os;
-  os << "[t=" << tick << "] MEM_FREE pid=" << g.pid << " -"
-     << g.memory_requirement << " used=" << memory_.used() << "/"
-     << memory_.total() << " start=" << g.memory_start;
+  os << "[time=" << tick << "] job=R" << g.pid << " release memory="
+     << g.memory_requirement << " -> FREE (base=" << g.memory_start
+     << " used=" << memory_.used() << "/" << memory_.total() << ")";
   g.memory_start = -1;
   log(os.str());
 }
@@ -305,8 +313,12 @@ bool Simulation::allGuestsFinished() const {
 void Simulation::run(int max_ticks) {
   ticks_executed_ = 0;
   ride_busy_ticks_ = 0;
-  log("=== Simulation start (1 tick = 1 minute, RR quantum = " +
-      std::to_string(rr_quantum_ticks_) + " ticks) ===");
+  const std::string policy_name =
+      scheduler_.policy() == SchedulingPolicy::FCFS
+          ? "FCFS"
+          : (scheduler_.policy() == SchedulingPolicy::Priority ? "PRIORITY" : "RR");
+  log("[config] scheduler=" + policy_name + " quantum=" + std::to_string(rr_quantum_ticks_));
+  log("[config] total_memory=" + std::to_string(memory_.total()));
   std::vector<Guest*> disembarked_all;
   std::vector<Guest*> admitted_all;
 
@@ -326,15 +338,15 @@ void Simulation::run(int max_ticks) {
     }
 
     if (allGuestsFinished()) {
-      log("[t=" + std::to_string(t) + "] All guests finished; stopping simulation.");
+      log("[time=" + std::to_string(t) + "] all jobs finished; stopping simulation");
       break;
     }
   }
 
   std::ostringstream summary;
-  summary << "=== Simulation end: completed=" << completed_
+  summary << "[summary] completed=" << completed_
           << " avg_wait_ticks=" << averageWait()
-          << " avg_ride_utilization=" << averageRideUtilization() << " ===";
+          << " avg_ride_utilization=" << averageRideUtilization();
   log(summary.str());
 }
 

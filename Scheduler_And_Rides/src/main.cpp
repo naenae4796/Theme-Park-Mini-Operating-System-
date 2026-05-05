@@ -50,7 +50,7 @@ static void runCase(SchedulingPolicy p, int quantum_ticks, int delay_ms, bool st
 }
 
 int main(int argc, char* argv[]) {
-  int delay_ms = 0;
+  int delay_ms = 650;
   int quantum_ticks = 2;
   bool step_mode = false;
   bool run_all = true;
@@ -60,13 +60,15 @@ int main(int argc, char* argv[]) {
     const std::string arg = argv[i];
     if (arg == "--step") {
       step_mode = true;
+    } else if (arg == "--fast") {
+      delay_ms = 0;
     } else if (arg == "--delay-ms" && i + 1 < argc) {
       delay_ms = std::atoi(argv[++i]);
       if (delay_ms < 0) {
         delay_ms = 0;
       }
     } else if (arg == "--demo") {
-      delay_ms = 450;
+      delay_ms = 650;
     } else if (arg == "--quantum" && i + 1 < argc) {
       quantum_ticks = std::atoi(argv[++i]);
       if (quantum_ticks <= 0) {

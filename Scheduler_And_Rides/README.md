@@ -65,11 +65,13 @@ Select one policy:
 ./build/theme_park_os --policy rr --quantum 2
 ```
 
-For a slower classroom demo:
+For a classroom demo:
 
 ```bash
 ./build/theme_park_os --policy rr --quantum 2 --demo
 ```
+
+Output is paced by default. Use `--fast` if you want it to print everything immediately.
 
 For full manual stepping:
 
@@ -93,11 +95,13 @@ Select one policy:
 ./build/Release/theme_park_os.exe --policy rr --quantum 2
 ```
 
-For a slower classroom demo:
+For a classroom demo:
 
 ```bash
 ./build/Release/theme_park_os.exe --policy rr --quantum 2 --demo
 ```
+
+Output is paced by default. Use `--fast` if you want it to print everything immediately.
 
 For full manual stepping:
 
