@@ -1,0 +1,10 @@
+^C:\USERS\JIMEN\DOWNLOADS\THEME-PARK-MINI-OPERATING-SYSTEM--PACED\THEME-PARK-MINI-OPERATING-SYSTEM--PACED\SCHEDULER_AND_RIDES\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/Jimen/Downloads/Theme-Park-Mini-Operating-System--paced/Theme-Park-Mini-Operating-System--paced/Scheduler_And_Rides -BC:/Users/Jimen/Downloads/Theme-Park-Mini-Operating-System--paced/Theme-Park-Mini-Operating-System--paced/Scheduler_And_Rides/build --check-stamp-file C:/Users/Jimen/Downloads/Theme-Park-Mini-Operating-System--paced/Theme-Park-Mini-Operating-System--paced/Scheduler_And_Rides/build/CMakeFiles/generate.stamp
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

@@ -1,0 +1,3 @@
+C:/Users/Jimen/Downloads/Theme-Park-Mini-Operating-System--paced/Theme-Park-Mini-Operating-System--paced/Scheduler_And_Rides/build/CMakeFiles/theme_park_os.dir
+C:/Users/Jimen/Downloads/Theme-Park-Mini-Operating-System--paced/Theme-Park-Mini-Operating-System--paced/Scheduler_And_Rides/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/Jimen/Downloads/Theme-Park-Mini-Operating-System--paced/Theme-Park-Mini-Operating-System--paced/Scheduler_And_Rides/build/CMakeFiles/ZERO_CHECK.dir
