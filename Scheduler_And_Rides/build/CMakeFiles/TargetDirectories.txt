@@ -1,0 +1,3 @@
+/tmp/combined_workspace/OS_System/build/CMakeFiles/theme_park_os.dir
+/tmp/combined_workspace/OS_System/build/CMakeFiles/edit_cache.dir
+/tmp/combined_workspace/OS_System/build/CMakeFiles/rebuild_cache.dir

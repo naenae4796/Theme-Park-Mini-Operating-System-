@@ -1,0 +1,112 @@
+Theme Park Mini-OS — Simulation notes (Person 2: Scheduler & Rides)
+================================================================
+
+Time model
+----------
+- Simulation clock advances in integer ticks.
+- In this project: 1 tick = 1 minute (so durations and bursts are easy to read).
+- Round Robin time slice (quantum) = 2 ticks = 2 minutes of CPU work per dispatch,
+  before possible preemption (see Round Robin below).
+
+
+Rides (demo: makeDemoRides in src/Simulation.cpp)
+-------------------------------------------------
+Each ride has an id, a name, a capacity, and a duration per cycle (in ticks).
+
+  Ride id 0 — Carousel
+    Capacity: 2 guests can load onto one cycle (the “train” size). The cycle starts as
+    soon as at least one guest has boarded (see Ride::start_cycle_if_loading_complete in
+    src/Ride.cpp); it does not wait for both seats to fill. That avoids stalling when
+    not enough guests are available to fill the car.
+    Duration: 3 ticks per cycle (ride is busy for 3 minutes once the cycle runs).
+
+  Ride id 1 — RollerCoaster
+    Capacity: 1 guest per cycle.
+    Duration: 4 ticks per cycle.
+
+  Ride id 2 — Ferris
+    Capacity: 1 guest per cycle (set to 1 in the demo so one guest can finish even
+    when no one else fills a larger car).
+    Duration: 2 ticks per cycle.
+
+While a cycle runs, the ride is “busy”; guests on that cycle are “riding” and do not
+use CPU time. Guests who arrive while the ride is busy or while loading is blocked
+join that ride’s FIFO waiting queue (WAITING state).
+
+
+What is a pid?
+--------------
+- pid = process id. Each guest is one “process” in the OS analogy.
+- It is a stable integer label (1, 2, 3, …) used in logs and for tie-breaking in
+  priority scheduling when priority and arrival time are equal (lower pid first).
+
+
+What does burst mean?
+---------------------
+- burst_time (often shortened to “burst” in discussion) is the total CPU service
+  the guest still needs when the simulation starts: walking, planning, non-ride work
+  modeled as CPU time.
+- remaining_time counts down as the guest runs on the CPU (not while waiting in a
+  ride line or while physically on a moving ride).
+- Ride time does not reduce burst/remaining_time; the ride is synchronization /
+  shared-resource waiting, like I/O in a real OS.
+
+
+What does DISPATCH mean?
+------------------------
+- DISPATCH means the scheduler chose this guest from the READY queue and gave them
+  the CPU for this part of the simulation: they become RUNNING (until they block,
+  finish CPU work, or get preempted under Round Robin).
+- Only one guest holds the CPU at a time in this demo. After boarding a ride, the
+  guest releases the CPU so others can run while the ride cycle completes.
+
+
+What does TERMINATED mean?
+--------------------------
+- TERMINATED means the guest’s process is finished and leaves the park simulation.
+- In this project, that happens when:
+  - remaining CPU work is 0, AND
+  - they have completed their required ride visit (visit_completed), OR they were
+    defined with no ride (requested_ride_id < 0).
+- The log line “TERMINATED pid=X (cpu finished)” means CPU work hit zero with all
+  requirements satisfied.
+
+
+Scheduling algorithms (how each works in this code)
+---------------------------------------------------
+
+1) FCFS — First-Come, First-Served
+   - READY queue order is FIFO: the guest who became READY first (among ties, lower
+     pid after sorting arrivals) is at the front.
+   - pickNext takes the front of the deque.
+   - A guest runs on the CPU until they block on a ride (WAITING), finish all CPU
+     work, or the simulation ends — there is no preemption for FCFS in the CPU step.
+
+
+2) Priority scheduling
+   - Each guest has priority: lower number = higher priority (more urgent).
+   - Tie-break order: lower priority value first, then earlier arrival_time, then
+     lower pid.
+   - pickNext scans the READY deque and selects the best guest by that ordering
+     (not necessarily the one who arrived first).
+   - Like FCFS, there is no CPU preemption between guests except blocking on rides;
+     the difference is who is chosen next from READY.
+
+
+3) Round Robin (RR)
+   - Uses the same FIFO READY queue as FCFS for ordering when guests are preempted.
+   - Quantum = 2 ticks: while a guest runs on the CPU, each tick that actually
+     consumes CPU (remaining_time decreases) counts toward the slice.
+   - After 2 such ticks in one dispatch, if remaining_time > 0, the guest is
+     PREEMPT_RR: state goes back to READY and they go to the back of the READY queue.
+   - Boarding a ride or being on a ride does not use the RR quantum in the same way;
+     the guest gives up the CPU when they board.
+
+
+Where to look in code
+---------------------
+- Guest fields: include/Guest.h
+- Ride behavior: include/Ride.h, src/Ride.cpp
+- Scheduler policies: include/Scheduler.h
+- Tick order and logging: src/Simulation.cpp
+- Demo rides/guests: makeDemoRides / makeDemoGuests in src/Simulation.cpp
