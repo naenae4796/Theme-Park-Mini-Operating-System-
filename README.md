@@ -25,9 +25,9 @@ Controls the system clock, state transitions, scheduling, memory allocation, res
 
 # Scheduling Summary
 The simulation supports FCFS, Priority Scheduling, and Round Robin. The scheduling policy is selected using command‑line arguments such as:
---policy fcfs
---policy priority
---policy rr --quantum 2
+-policy fcfs
+-policy priority
+-policy rr (quantum 2)
 
 # Memory Summary
 Total memory size is 1024 units. Processes must have memory allocated before entering READY or RUNNING. First‑fit contiguous allocation is used.
